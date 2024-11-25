@@ -1,4 +1,3 @@
-# ~/.local/lib/python3.12/site-packages/torch_utils/config.py
 import torch
 import os
 import warnings
@@ -31,14 +30,24 @@ def configure_torch() -> Dict[str, bool]:
     config_status['warnings_configured'] = True
     
     # 2. Configuration ROCm
-    os.environ['PYTORCH_HIPBLASLT_DISABLE'] = '1'
-    os.environ['TORCH_USE_ROCBLAS'] = '1'
+    os.environ['PYTORCH_HIPBLASLT_DISABLE'] = '1' # Désactive hipBLASLt qui cause des warnings et n'est pas optimisé pour RDNA 2
+    os.environ['TORCH_USE_ROCBLAS'] = '1' # Force l'utilisation de ROCBLAS, qui est plus stable et mieux optimisé pour votre GPU
     config_status['rocm_configured'] = True
     
     # 3. Optimisation des performances
+    # Active l'autotuning : PyTorch va tester différents algorithmes et choisir le plus rapide
+    # Très utile si vous utilisez toujours les mêmes tailles de tenseurs (comme dans le CNN)
     torch.backends.cudnn.benchmark = True     # Autotuning
-    torch.backends.cudnn.deterministic = False  # Mode non-déterministe pour performance
+
+
+    # Permet des optimisations non-déterministes
+    # Améliore les performances mais les résultats peuvent varier légèrement entre les exécutions
+    torch.backends.cudnn.deterministic = False  # Mode non-déterministe pour plus de performances
+
+
+   # Active les optimisations CUDNN pour les opérations comme les convolutions
+   # Crucial pour les performances des réseaux de neurones
     torch.backends.cudnn.enabled = True       # Active CUDNN
     config_status['performance_configured'] = True
-    
+
     return config_status
