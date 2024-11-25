@@ -30,24 +30,22 @@ def configure_torch() -> Dict[str, bool]:
     config_status['warnings_configured'] = True
     
     # 2. Configuration ROCm
-    os.environ['PYTORCH_HIPBLASLT_DISABLE'] = '1' # Désactive hipBLASLt qui cause des warnings et n'est pas optimisé pour RDNA 2
-    os.environ['TORCH_USE_ROCBLAS'] = '1' # Force l'utilisation de ROCBLAS, qui est plus stable et mieux optimisé pour votre GPU
+    os.environ['PYTORCH_HIPBLASLT_DISABLE'] = '1'
+    os.environ['TORCH_USE_ROCBLAS'] = '1'
     config_status['rocm_configured'] = True
     
-    # 3. Optimisation des performances
-    # Active l'autotuning : PyTorch va tester différents algorithmes et choisir le plus rapide
-    # Très utile si vous utilisez toujours les mêmes tailles de tenseurs (comme dans le CNN)
-    torch.backends.cudnn.benchmark = True     # Autotuning
-
-
-    # Permet des optimisations non-déterministes
-    # Améliore les performances mais les résultats peuvent varier légèrement entre les exécutions
-    torch.backends.cudnn.deterministic = False  # Mode non-déterministe pour plus de performances
-
-
-   # Active les optimisations CUDNN pour les opérations comme les convolutions
-   # Crucial pour les performances des réseaux de neurones
-    torch.backends.cudnn.enabled = True       # Active CUDNN
+    # 2. Configuration transformers pour ROCm
+    if torch.cuda.is_available():
+        # Désactive SDPA problématique et active les alternatives
+        torch.backends.cuda.enable_flash_sdp(False)
+        torch.backends.cuda.enable_mem_efficient_sdp(True)
+        torch.backends.cuda.enable_math_sdp(True)
+        config_status['transformer_configured'] = True
+    
+    # 3. Optimisation générale des performances
+    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.enabled = True
     config_status['performance_configured'] = True
-
+    
     return config_status
