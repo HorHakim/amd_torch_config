@@ -1,0 +1,1 @@
+from .amd_torch_config import configure_torch
